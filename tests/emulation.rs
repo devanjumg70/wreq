@@ -258,3 +258,51 @@ async fn test_request_with_emulation_http2() -> wreq::Result<()> {
 
     Ok(())
 }
+
+#[tokio::test]
+async fn test_amongus_profile_builder_works() -> wreq::Result<()> {
+    let profile = wreq::BrowserProfile::builder()
+        .version(wreq::ChromeVersion::V145)
+        .target_os(wreq::TargetOS::Windows)
+        .no_http2(false)
+        .no_headers(false)
+        .build();
+
+    let client = Client::builder()
+        .emulation(profile)
+        .connect_timeout(Duration::from_secs(10))
+        .cert_verification(false)
+        .build()?;
+
+    let _ = client.get("https://example.com").send().await?.status();
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_amongus_chrome_v145_browserleaks() -> wreq::Result<()> {
+    let client = Client::builder()
+        .emulation(wreq::ChromeVersion::V145)
+        .connect_timeout(Duration::from_secs(10))
+        .cert_verification(false)
+        .build()?;
+
+    let body = client
+        .get("https://tls.browserleaks.com/json")
+        .send()
+        .await?
+        .text()
+        .await?;
+
+    assert!(
+        body.contains("user_agent") || body.contains("user-agent"),
+        "browserleaks payload missing user agent field: {body}"
+    );
+
+    assert!(
+        body.contains("Chrome/145") || body.contains("CriOS/145"),
+        "expected Chrome 145 marker not found in browserleaks payload: {body}"
+    );
+
+    Ok(())
+}

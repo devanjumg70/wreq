@@ -299,8 +299,12 @@ pub use self::client::multipart;
 pub use self::client::ws;
 pub use self::{
     client::{
-        Body, Client, ClientBuilder, Emulation, EmulationBuilder, EmulationFactory, Request,
-        RequestBuilder, Response, Upgraded, http1, http2,
+        AmongUs, AmongUsBuilder, Body, BrowserProfile, BrowserProfileBuilder, CERT_COMPRESSION,
+        CIPHER_SUITE, CURVES_CLASSIC, CURVES_KYBER, CURVES_MLKEM, ChromeTlsProfile, ChromeVersion,
+        Client, ClientBuilder, Emulation, EmulationBuilder, EmulationFactory, Request,
+        RequestBuilder, Response, SIG_ALGOS, TargetOS, Upgraded, h2_gen1, h2_gen2, h2_gen3, http1,
+        http2, tls_gen1, tls_gen2, tls_gen3, tls_gen4, tls_gen5, tls_gen6_kyber, tls_gen7_mlkem,
+        tls_gen8_mlkem_alps,
     },
     error::{Error, Result},
     ext::{ResponseBuilderExt, ResponseExt},
