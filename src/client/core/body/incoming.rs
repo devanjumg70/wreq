@@ -14,9 +14,6 @@ use http_body::{Body, Frame, SizeHint};
 use super::DecodedLength;
 use crate::client::core::{self, Error, common::watch, proto::http2::ping};
 
-type BodySender = mpsc::Sender<Result<Bytes, Error>>;
-type TrailersSender = oneshot::Sender<HeaderMap>;
-
 /// A stream of `Bytes`, used when receiving bodies from the network.
 ///
 /// Note that Users should not instantiate this struct directly. When working with the crate::core:
@@ -58,8 +55,8 @@ enum Kind {
 #[must_use = "Sender does nothing unless sent on"]
 pub(crate) struct Sender {
     want_rx: watch::Receiver,
-    data_tx: BodySender,
-    trailers_tx: Option<TrailersSender>,
+    data_tx: mpsc::Sender<Result<Bytes, Error>>,
+    trailers_tx: Option<oneshot::Sender<HeaderMap>>,
 }
 
 const WANT_PENDING: usize = 1;
@@ -195,6 +192,7 @@ impl Body for Incoming {
         }
     }
 
+    #[inline]
     fn is_end_stream(&self) -> bool {
         match self.kind {
             Kind::Empty => true,
@@ -203,19 +201,13 @@ impl Body for Incoming {
         }
     }
 
+    #[inline]
     fn size_hint(&self) -> SizeHint {
-        fn opt_len(decoded_length: DecodedLength) -> SizeHint {
-            if let Some(content_length) = decoded_length.into_opt() {
-                SizeHint::with_exact(content_length)
-            } else {
-                SizeHint::default()
-            }
-        }
-
         match self.kind {
             Kind::Empty => SizeHint::with_exact(0),
-            Kind::Chan { content_length, .. } => opt_len(content_length),
-            Kind::H2 { content_length, .. } => opt_len(content_length),
+            Kind::Chan { content_length, .. } | Kind::H2 { content_length, .. } => content_length
+                .into_opt()
+                .map_or_else(SizeHint::default, SizeHint::with_exact),
         }
     }
 }
@@ -224,6 +216,7 @@ impl fmt::Debug for Incoming {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         #[derive(Debug)]
         struct Streaming;
+
         #[derive(Debug)]
         struct Empty;
 
